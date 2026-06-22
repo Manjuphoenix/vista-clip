@@ -23,7 +23,7 @@ Our implementation is based on [ECLIPSE](https://github.com/clovaai/ECLIPSE) and
 Please check the [installation instructions](https://github.com/facebookresearch/Mask2Former/blob/main/INSTALL.md) and [dataset preparation](https://github.com/facebookresearch/Mask2Former/blob/main/datasets/README.md).
 
 
-To install detectron2 (with the contributions included)
+## To install detectron2 (with the contributions included)
 ```
 cd detectron2
 pip install -e .
