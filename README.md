@@ -22,6 +22,13 @@ Our implementation is based on [ECLIPSE](https://github.com/clovaai/ECLIPSE) and
 
 Please check the [installation instructions](https://github.com/facebookresearch/Mask2Former/blob/main/INSTALL.md) and [dataset preparation](https://github.com/facebookresearch/Mask2Former/blob/main/datasets/README.md).
 
+
+To install detectron2 (with the contributions included)
+```
+cd detectron2
+pip install -e .
+```
+
 You can see our core implementation from
 - `mask2former/maskformer_model.py`
 - `mask2former/modeling/transformer_decoder/mask2former_transformer_decoder.py`
