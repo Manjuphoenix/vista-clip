@@ -1,7 +1,7 @@
 # VISTA-CLIP (CVPR-W 2025)
 
 **VISTA-CLIP: Visual Incremental Self-Tuned Adaptation for Efficient Continual Panoptic Segmentation** <br />
-[Manjuphoenix](https://manjuphoenix.github.io/)<sup>*1</sup>, [Shrikar Madhu]()<sup>*2</sup>, [Aniruddh Sikdar](https://aniruddhsikdar1.github.io/)<sup>*3</sup>, [Suresh Sundaram](https://scholar.google.com/citations?user=5iAMbhMAAAAJ&hl=en)<sup>1,3</sup><br>
+[Manjunath D](https://manjuphoenix.github.io/)<sup>*1</sup>, [Shrikar Madhu]()<sup>*2</sup>, [Aniruddh Sikdar](https://aniruddhsikdar1.github.io/)<sup>*3</sup>, [Suresh Sundaram](https://scholar.google.com/citations?user=5iAMbhMAAAAJ&hl=en)<sup>1,3</sup><br>
 
 <sup>1</sup> <sub>Dept. of Aerospace Engineering, Indian Institute of Science, Bengaluru, India</sub><br />
 <sup>2</sup> <sub>Kotak IISc AI-ML Centre (KIAC), Indian Institute of Science, Bengaluru, India</sub><br />
