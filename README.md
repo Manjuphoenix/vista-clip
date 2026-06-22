@@ -7,7 +7,7 @@
 <sup>2</sup> <sub>Kotak IISc AI-ML Centre (KIAC), Indian Institute of Science, Bengaluru, India</sub><br />
 <sup>3</sup> <sub>Robert Bosch Centre for Cyber Physical Systems, Indian Institute of Science, Bengaluru, India</sub><br />
 
-[![](https://img.shields.io/badge/CVPR-2025-blue)](https://openaccess.thecvf.com/content/CVPR2025W/DG-EBF/papers/D_VISTA-CLIP_Visual_Incremental_Self-Tuned_Adaptation_for_Efficient_Continual_Panoptic_Segmentation_CVPRW_2025_paper.pdf)
+[![](https://img.shields.io/badge/CVPR_W-2025-blue?logoColor=blue&color=blue)](https://openaccess.thecvf.com/content/CVPR2025W/DG-EBF/papers/D_VISTA-CLIP_Visual_Incremental_Self-Tuned_Adaptation_for_Efficient_Continual_Panoptic_Segmentation_CVPRW_2025_paper.pdf)
 
 </div>
 
