@@ -7,7 +7,7 @@
 <sup>2</sup> <sub>Kotak IISc AI-ML Centre (KIAC), Indian Institute of Science, Bengaluru, India</sub><br />
 <sup>3</sup> <sub>Robert Bosch Centre for Cyber Physical Systems, Indian Institute of Science, Bengaluru, India</sub><br />
 
-[![](https://img.shields.io/badge/CVPR-2024-blue)](https://openaccess.thecvf.com/content/CVPR2025W/DG-EBF/papers/D_VISTA-CLIP_Visual_Incremental_Self-Tuned_Adaptation_for_Efficient_Continual_Panoptic_Segmentation_CVPRW_2025_paper.pdf)
+[![](https://img.shields.io/badge/CVPR-2025-blue)](https://openaccess.thecvf.com/content/CVPR2025W/DG-EBF/papers/D_VISTA-CLIP_Visual_Incremental_Self-Tuned_Adaptation_for_Efficient_Continual_Panoptic_Segmentation_CVPRW_2025_paper.pdf)
 
 </div>
 
@@ -69,7 +69,7 @@ Run bash script/respective_sh file
 ## License
 
 ```
-ECLIPSE
+VISTA-CLIP
 Copyright (c) 2025-present AIRL, IISc, Bengaluru.
 CC BY-NC 4.0 (https://creativecommons.org/licenses/by-nc/4.0/)
 ```
