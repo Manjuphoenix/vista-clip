@@ -1,0 +1,31 @@
+# _BASE_: maskformer2_R50_bs16_160k.yaml
+# MODEL: 
+#   BACKBONE: 
+#     NAME: "CLIP_back"
+#   CLIP_encoder:
+#     EMBED_DIM: 1024
+#     IMAGE_RESOLUTION: 512 #640 #224
+#     VISION_LAYERS: [3, 4, 6, 3]
+#     VISION_WIDTH: 64
+#   WEIGHTS: clip_RN50.pkl
+
+
+
+_BASE_: maskformer2_R50_bs16_160k.yaml
+MODEL: 
+  BACKBONE: 
+    # NAME: "build_clip_resnet_backbone"
+    NAME: "CLIP_back"
+    # NAME: "build_model"
+  CLIP_encoder:
+    EMBED_DIM: 256
+    IMAGE_RESOLUTION: 640 #640 #224
+    VISION_LAYERS: [3, 4, 6, 3]
+    VISION_WIDTH: 64
+  CLIP_text:
+    CONTEXT_LENGTH: 77
+    VOCAB_SIZE: 49408
+    TRANSFORMER_WIDTH: 512
+    #WEIGHTS: clip_RN50.pkl
+  WEIGHTS: "detectron2://ImageNetPretrained/torchvision/R-50.pkl"
+  # WEIGHTS: epoch14.pth
