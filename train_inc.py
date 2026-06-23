@@ -97,8 +97,8 @@ class IncrementalTrainer(TrainerBase):
         self.optimizer = optimizer = self.build_optimizer(cfg, model)
         self.data_loader = data_loader = self.build_train_loader(cfg)
 
-        # self.model = model = create_ddp_model(model, broadcast_buffers=False, find_unused_parameters=True)
-        self.model = model = create_ddp_model(model, broadcast_buffers=False)
+        self.model = model = create_ddp_model(model, broadcast_buffers=False, find_unused_parameters=True)
+        # self.model = model = create_ddp_model(model, broadcast_buffers=False)
         model_wrapper = build_wrapper(cfg, model, self.model_old)
 
         self._trainer = (AMPTrainer if cfg.SOLVER.AMP.ENABLED else SimpleTrainer)(

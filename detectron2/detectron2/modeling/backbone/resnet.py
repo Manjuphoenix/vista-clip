@@ -239,7 +239,7 @@ class FixedPatchPrompter(nn.Module):
     def __init__(self):
         super(FixedPatchPrompter, self).__init__()
         
-        print("--...........Prompting is Initialized........--")
+        # print("--...........Prompting is Initialized........--")
         prompt_size = 30
         # args.prompt_size
         #image_size = torch.rand((640,640))
@@ -253,7 +253,7 @@ class FixedPatchPrompter(nn.Module):
         self.patch = nn.Parameter(torch.randn([1, 3, self.psize, self.psize]))
 
     def forward(self, x):
-        print("--...........Prompting happening........--")
+        # print("--...........Prompting happening........--")
         prompt = torch.zeros([1, 3, self.isize, self.isize]).cuda()
         prompt[:, :, :self.psize, :self.psize] = self.patch
 

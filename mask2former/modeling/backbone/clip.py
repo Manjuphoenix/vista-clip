@@ -19,9 +19,6 @@ from tqdm import tqdm
 from typing import Union, List
 from .simple_tokenizer import SimpleTokenizer as _Tokenizer
 from packaging import version
-import clip
-
-import pickle
 
 
 from detectron2.modeling import BACKBONE_REGISTRY, Backbone, ShapeSpec
@@ -29,49 +26,49 @@ from detectron2.modeling import BACKBONE_REGISTRY, Backbone, ShapeSpec
 from detectron2.modeling.backbone.resnet import ResNet, BasicStem, BasicBlock, DeformBottleneckBlock, BottleneckBlock
 
 
-# _tokenizer = _Tokenizer()
+_tokenizer = _Tokenizer()
 
-# def tokenize(texts: Union[str, List[str]], context_length: int = 256, truncate: bool = False) -> Union[torch.IntTensor, torch.LongTensor]:
-#     """
-#     Returns the tokenized representation of given input string(s)
+def tokenize(texts: Union[str, List[str]], context_length: int = 256, truncate: bool = False) -> Union[torch.IntTensor, torch.LongTensor]:
+    """
+    Returns the tokenized representation of given input string(s)
 
-#     Parameters
-#     ----------
-#     texts : Union[str, List[str]]
-#         An input string or a list of input strings to tokenize
+    Parameters
+    ----------
+    texts : Union[str, List[str]]
+        An input string or a list of input strings to tokenize
 
-#     context_length : int
-#         The context length to use; all CLIP models use 77 as the context length
+    context_length : int
+        The context length to use; all CLIP models use 77 as the context length
 
-#     truncate: bool
-#         Whether to truncate the text in case its encoding is longer than the context length
+    truncate: bool
+        Whether to truncate the text in case its encoding is longer than the context length
 
-#     Returns
-#     -------
-#     A two-dimensional tensor containing the resulting tokens, shape = [number of input strings, context_length].
-#     We return LongTensor when torch version is <1.8.0, since older index_select requires indices to be long.
-#     """
-#     if isinstance(texts, str):
-#         texts = [texts]
+    Returns
+    -------
+    A two-dimensional tensor containing the resulting tokens, shape = [number of input strings, context_length].
+    We return LongTensor when torch version is <1.8.0, since older index_select requires indices to be long.
+    """
+    if isinstance(texts, str):
+        texts = [texts]
 
-#     sot_token = _tokenizer.encoder["<|startoftext|>"]
-#     eot_token = _tokenizer.encoder["<|endoftext|>"]
-#     all_tokens = [[sot_token] + _tokenizer.encode(text) + [eot_token] for text in texts]
-#     if version.parse(torch.__version__) < version.parse("1.8.0"):
-#         result = torch.zeros(len(all_tokens), context_length, dtype=torch.long)
-#     else:
-#         result = torch.zeros(len(all_tokens), context_length, dtype=torch.int)
+    sot_token = _tokenizer.encoder["<|startoftext|>"]
+    eot_token = _tokenizer.encoder["<|endoftext|>"]
+    all_tokens = [[sot_token] + _tokenizer.encode(text) + [eot_token] for text in texts]
+    if version.parse(torch.__version__) < version.parse("1.8.0"):
+        result = torch.zeros(len(all_tokens), context_length, dtype=torch.long)
+    else:
+        result = torch.zeros(len(all_tokens), context_length, dtype=torch.int)
 
-#     for i, tokens in enumerate(all_tokens):
-#         if len(tokens) > context_length:
-#             if truncate:
-#                 tokens = tokens[:context_length]
-#                 tokens[-1] = eot_token
-#             else:
-#                 raise RuntimeError(f"Input {texts[i]} is too long for context length {context_length}")
-#         result[i, :len(tokens)] = torch.tensor(tokens)
+    for i, tokens in enumerate(all_tokens):
+        if len(tokens) > context_length:
+            if truncate:
+                tokens = tokens[:context_length]
+                tokens[-1] = eot_token
+            else:
+                raise RuntimeError(f"Input {texts[i]} is too long for context length {context_length}")
+        result[i, :len(tokens)] = torch.tensor(tokens)
 
-#     return result
+    return result
 
 
 
@@ -125,207 +122,6 @@ def tokenize(texts: Union[str, List[str]], context_length: int = 77, truncate: b
         result[i, :len(tokens)] = torch.tensor(tokens)
 
     return result
-
-
-def load_clip_encoder():
-    """
-    Load CLIP model weights from a checkpoint file.
-    
-    Args:
-        checkpoint_path: Path to the CLIP checkpoint (.pth file)
-    
-    Returns:
-        model: CLIP encoder model with loaded weights
-    """
-
-    import gc
-
-    gc.collect()
-    torch.cuda.empty_cache()
-
-    with open("/workspace/localscratch/rbcansi/ECLIpse_text/clip_RN50.pkl", 'rb') as f:
-        state_dict = pickle.load(f)
-
-
-    
-    # print(state_dict.keys(), "************")
-    # print(JEY)
-
-    
-    for k, v in state_dict.items():
-        if k.startswith("backbone.visual"):
-            state_dict[k] = v.to("cpu")
-            del state_dict[k]
-            # print(state_dict[k])
-        elif k.startswith("backbone.transformer"):
-            state_dict[k] = v.to("cpu")
-        else:
-            state_dict[k] = v.to("cpu")
-
-    # print(state_dict, "************")
-    # print(JEY)
-    # state_dict = torch.load("/workspace/localscratch/rbcansi/ECLIpse_text/clip_RN50.pkl")
-
-    # print("-----------", state_dict.keys(), "*******************")
-    # print(OIHJOERER)
-    
-    # Extract model dimensions from the state_dict
-    embed_dim = state_dict["backbone.text_projection"].shape[1]
-    context_length = state_dict["backbone.positional_embedding"].shape[0]
-    vocab_size = state_dict["backbone.token_embedding.weight"].shape[0]
-    transformer_width = state_dict["backbone.ln_final.weight"].shape[0]
-    transformer_heads = transformer_width // 64
-    transformer_layers = len(set(k.split(".")[2] for k in state_dict if k.startswith("backbone.transformer.resblocks")))
-    
-    # Extract vision architecture parameters
-    vision_width = state_dict["backbone.visual.layer1.0.conv1.weight"].shape[0]
-    vision_layers = tuple([len(set(k.split(".")[2] for k in state_dict if k.startswith(f"visual.layer{b}"))) for b in [1, 2, 3, 4]])
-    output_width = round((state_dict["backbone.visual.attnpool.positional_embedding"].shape[0] - 1) ** 0.5)
-    image_resolution = output_width * 32
-    
-    # Create a config object with required parameters
-    from types import SimpleNamespace
-    cfg = SimpleNamespace()
-    cfg.MODEL = SimpleNamespace()
-    cfg.MODEL.CLIP_encoder = SimpleNamespace()
-    cfg.MODEL.CLIP_encoder.EMBED_DIM = embed_dim
-    cfg.MODEL.CLIP_encoder.IMAGE_RESOLUTION = image_resolution
-    cfg.MODEL.CLIP_encoder.VISION_LAYERS = vision_layers
-    cfg.MODEL.CLIP_encoder.VISION_WIDTH = vision_width
-    cfg.MODEL.CLIP_encoder.OUT_FEATURES = ["res2", "res3", "res4", "res5"]
-    
-    cfg.MODEL.CLIP_text = SimpleNamespace()
-    cfg.MODEL.CLIP_text.CONTEXT_LENGTH = context_length
-    cfg.MODEL.CLIP_text.VOCAB_SIZE = vocab_size
-    cfg.MODEL.CLIP_text.TRANSFORMER_WIDTH = transformer_width
-    
-    # Create the model
-    model = CLIP_encoder(
-        cfg=cfg,
-        embed_dim=embed_dim,
-        image_resolution=image_resolution,
-        vision_layers=vision_layers,
-        vision_width=vision_width,
-        context_length=context_length,
-        vocab_size=vocab_size,
-        transformer_width=transformer_width,
-        transformer_heads=transformer_heads,
-        transformer_layers=transformer_layers
-    )
-
-    # device_ids = [0,1]
-
-    # state_dict = nn.DataParallel(state_dict, device_ids=device_ids)
-    # Load the state dict
-    model.load_state_dict(state_dict, strict=False)
-
-
-    print("---------------", model, "*****************")
-    
-    # del state_dict
-    # gc.collect()
-    # torch.cuda.empty_cache()
-    
-    # # Configure model for multiple GPUs
-    # if torch.cuda.is_available():
-    #     num_gpus = torch.cuda.device_count()
-        
-    #     if use_multiple_gpus and num_gpus > 1:
-    #         # Memory-efficient approach for multi-GPU
-            
-    #         # Check if distributed training is initialized
-    #         if torch.distributed.is_available() and torch.distributed.is_initialized():
-    #             # Use DDP with careful memory management
-    #             try:
-    #                 local_rank = torch.distributed.get_rank() % num_gpus
-    #                 # Set device explicitly and only load relevant model parts to this GPU
-    #                 torch.cuda.set_device(local_rank)
-    #                 model = model.to(local_rank)
-    #                 torch.cuda.empty_cache()  # Clear any temporary memory
-                    
-    #                 # Wrap with DistributedDataParallel
-    #                 model = torch.nn.parallel.DistributedDataParallel(
-    #                     model,
-    #                     device_ids=[local_rank],
-    #                     output_device=local_rank,
-    #                     find_unused_parameters=True  # Helps avoid some DDP errors
-    #                 )
-    #                 print(f"Model distributed using DistributedDataParallel across {torch.distributed.get_world_size()} processes (memory-efficient mode)")
-    #             except Exception as e:
-    #                 print(f"Error in DDP setup: {e}. Falling back to single GPU.")
-    #                 torch.cuda.empty_cache()
-    #                 model = model.to('cuda:0')
-    #         else:
-    #             # Try model sharding with DataParallel
-    #             try:
-    #                 # Use a more memory-efficient configuration for DataParallel
-    #                 # First, determine available GPU memory
-    #                 free_memory = []
-    #                 for i in range(num_gpus):
-    #                     torch.cuda.set_device(i)
-    #                     torch.cuda.empty_cache()
-    #                     free_memory.append(torch.cuda.get_device_properties(i).total_memory - torch.cuda.memory_allocated(i))
-                    
-    #                 # If we have very limited memory, use fewer GPUs
-    #                 usable_gpus = min(num_gpus, max(1, sum(mem > 2e9 for mem in free_memory)))  # Only use GPUs with >2GB free
-                    
-    #                 if usable_gpus < num_gpus:
-    #                     print(f"Limited GPU memory available. Using {usable_gpus} out of {num_gpus} GPUs")
-                    
-    #                 if usable_gpus > 1:
-    #                     model = model.to('cuda:0')  # Move to first GPU
-    #                     model = torch.nn.DataParallel(model, device_ids=list(range(usable_gpus)))
-    #                     print(f"Model distributed using DataParallel across {usable_gpus} GPUs (memory-efficient mode)")
-    #                 else:
-    #                     # Fall back to single GPU
-    #                     torch.cuda.set_device(0)  # Use the first GPU
-    #                     model = model.to('cuda:0')
-    #                     print("Limited memory: using only a single GPU")
-    #             except Exception as e:
-    #                 print(f"Error in DataParallel setup: {e}. Falling back to single GPU.")
-    #                 torch.cuda.empty_cache()
-    #                 torch.cuda.set_device(0)
-    #                 model = model.to('cuda:0')
-    #     else:
-    #         # Single GPU mode
-    #         torch.cuda.set_device(0)
-    #         torch.cuda.empty_cache()
-    #         model = model.to('cuda:0')
-    #         print("Model loaded on a single GPU")
-    # else:
-    #     print("No GPU available, model loaded on CPU")
-    
-    # return model
-
-    # Move model to GPU and utilize multiple GPUs if available and requested
-    if torch.cuda.is_available():
-        if use_multiple_gpus and torch.cuda.device_count() > 1:
-            # Check if we're in a distributed training environment
-            if torch.distributed.is_available() and torch.distributed.is_initialized():
-                # Use DistributedDataParallel for distributed training
-                local_rank = torch.distributed.get_rank() % torch.cuda.device_count()
-                model = model.to(local_rank)
-                model = torch.nn.parallel.DistributedDataParallel(
-                    model, 
-                    device_ids=[local_rank],
-                    output_device=local_rank
-                )
-                print(f"Model distributed using DistributedDataParallel across {torch.distributed.get_world_size()} processes")
-            else:
-                # Use DataParallel for single-node multi-GPU training
-                model = model.to('cuda')
-                model = torch.nn.DataParallel(model)
-                print(f"Model distributed using DataParallel across {torch.cuda.device_count()} GPUs")
-        else:
-            # Use a single GPU
-            model = model.to('cuda')
-            print("Model loaded on a single GPU")
-    else:
-        print("No GPU available, model loaded on CPU")
-
-    print("-----------------", model, "*****************")
-    print(IOHEOI)
-    return model
 
 
 
@@ -413,9 +209,9 @@ class Bottleneck(nn.Module):
 #         )
 
 #         return x[0]
-    
-    
-    
+
+
+
 class AttentionPool2d(nn.Module):
     def __init__(self, spacial_dim: int, embed_dim: int, num_heads: int, output_dim: int = None):
         super().__init__()
@@ -427,8 +223,14 @@ class AttentionPool2d(nn.Module):
         self.num_heads = num_heads
 
     def forward(self, x):
+        # print("--First---", x.shape, "------")
         x = x.flatten(start_dim=2).permute(2, 0, 1)  # NCHW -> (HW)NC
+        # print("--Second---", x.shape, "-----")
         x = torch.cat([x.mean(dim=0, keepdim=True), x], dim=0)  # (HW+1)NC
+        #print(f"x shape: {x.shape}")
+        #print(f"positional_embedding shape: {self.positional_embedding.shape}")
+        
+        print("----", x.shape, self.positional_embedding[:, None, :].to(x.dtype).shape, "-------")
         x = x + self.positional_embedding[:, None, :].to(x.dtype)  # (HW+1)NC
         x, _ = F.multi_head_attention_forward(
             query=x[:1], key=x, value=x,
@@ -450,49 +252,6 @@ class AttentionPool2d(nn.Module):
             need_weights=False
         )
         return x.squeeze(0)
-
-
-
-# class AttentionPool2d(nn.Module):
-#     def __init__(self, spacial_dim: int, embed_dim: int, num_heads: int, output_dim: int = None):
-#         super().__init__()
-#         self.positional_embedding = nn.Parameter(torch.randn(spacial_dim ** 2 + 1, embed_dim) / embed_dim ** 0.5)
-#         self.k_proj = nn.Linear(embed_dim, embed_dim)
-#         self.q_proj = nn.Linear(embed_dim, embed_dim)
-#         self.v_proj = nn.Linear(embed_dim, embed_dim)
-#         self.c_proj = nn.Linear(embed_dim, output_dim or embed_dim)
-#         self.num_heads = num_heads
-
-#     def forward(self, x):
-#         # print("--First---", x.shape, "------")
-#         x = x.flatten(start_dim=2).permute(2, 0, 1)  # NCHW -> (HW)NC
-#         # print("--Second---", x.shape, "-----")
-#         x = torch.cat([x.mean(dim=0, keepdim=True), x], dim=0)  # (HW+1)NC
-#         #print(f"x shape: {x.shape}")
-#         #print(f"positional_embedding shape: {self.positional_embedding.shape}")
-        
-#         print("----", x.shape, self.positional_embedding[:, None, :].to(x.dtype).shape, "-------")
-#         x = x + self.positional_embedding[:, None, :].to(x.dtype)  # (HW+1)NC
-#         x, _ = F.multi_head_attention_forward(
-#             query=x[:1], key=x, value=x,
-#             embed_dim_to_check=x.shape[-1],
-#             num_heads=self.num_heads,
-#             q_proj_weight=self.q_proj.weight,
-#             k_proj_weight=self.k_proj.weight,
-#             v_proj_weight=self.v_proj.weight,
-#             in_proj_weight=None,
-#             in_proj_bias=torch.cat([self.q_proj.bias, self.k_proj.bias, self.v_proj.bias]),
-#             bias_k=None,
-#             bias_v=None,
-#             add_zero_attn=False,
-#             dropout_p=0,
-#             out_proj_weight=self.c_proj.weight,
-#             out_proj_bias=self.c_proj.bias,
-#             use_separate_proj_weight=True,
-#             training=self.training,
-#             need_weights=False
-#         )
-#         return x.squeeze(0)
 
 class ModifiedResNet(nn.Module):
     """
@@ -630,15 +389,15 @@ class Transformer(nn.Module):
 #                  ):
 #         super().__init__()
 
-        # vision_heads = vision_width * 32 // 64
-        # self.visual = ModifiedResNet(
-        #     layers=vision_layers,
-        #     output_dim=embed_dim,
-        #     heads=vision_heads,
-        #     input_resolution=image_resolution,
-        #     width=vision_width,
-        #     #replace_stride_with_dilation= replace_stride_with_dilation
-        # )
+#         vision_heads = vision_width * 32 // 64
+#         self.visual = ModifiedResNet(
+#             layers=vision_layers,
+#             output_dim=embed_dim,
+#             heads=vision_heads,
+#             input_resolution=image_resolution,
+#             width=vision_width,
+#             #replace_stride_with_dilation= replace_stride_with_dilation
+#         )
         
 #         self.initialize_parameters()
 
@@ -696,13 +455,13 @@ class Transformer(nn.Module):
 
 #         # if isinstance(vision_layers, (tuple, list)):
 #         # vision_heads = vision_width * 32 // 64
-        # self.visual = ModifiedResNet(
-        #     layers=vision_layers,
-        #     output_dim=embed_dim,
-        #     heads=vision_heads,
-        #     input_resolution=image_resolution,
-        #     width=vision_width
-        # )
+#         # self.visual = ModifiedResNet(
+#         #     layers=vision_layers,
+#         #     output_dim=embed_dim,
+#         #     heads=vision_heads,
+#         #     input_resolution=image_resolution,
+#         #     width=vision_width
+#         # )
         
         
         # freeze_at           = 0
@@ -959,35 +718,8 @@ class CLIP_encoder(nn.Module):
 
         stem = BasicStem(3, 64, "FrozenBN")
 
-
-    ###################### CLIP IMG Encoder starts here #########################
-        # vision_heads = vision_width * 32 // 64
-        
-        # self.visual = ModifiedResNet(
-        #     layers=vision_layers,
-        #     output_dim=embed_dim,
-        #     heads=vision_heads,
-        #     input_resolution=image_resolution,
-        #     width=vision_width,
-        #     #replace_stride_with_dilation= replace_stride_with_dilation
-        # )
-        
-        
-
-    ####################### RESNET ENCODER ###############################
-
-        # self.clip_model = load_clip_encoder()
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        
-        self.clip_text_enc = clip.load('RN50', device)[0].encode_text
-
-        # print("---------------", self.clip_model, "****************")
-        # print(HOIHIO)
-
-        # self.text_encoder = self.clip_model.encode_text
-
-        
         self.visual = ResNet(stem, stages, out_features=out_features, freeze_at=freeze_at)
+
 
         self.transformer = Transformer(
             width=transformer_width,
@@ -999,8 +731,8 @@ class CLIP_encoder(nn.Module):
         self.vocab_size = vocab_size
         self.token_embedding = nn.Embedding(vocab_size, transformer_width)
         
-        # self.positional_embedding = nn.Parameter(torch.empty(context_length, transformer_width))
-        self.positional_embedding = nn.Parameter(torch.empty(77, transformer_width))
+        self.positional_embedding = nn.Parameter(torch.empty(context_length, transformer_width))
+        # self.positional_embedding = nn.Parameter(torch.empty(256, transformer_width))
         self.ln_final = LayerNorm(transformer_width)
 
         self.text_projection = nn.Parameter(torch.empty(transformer_width, embed_dim))
@@ -1062,27 +794,20 @@ class CLIP_encoder(nn.Module):
         # return self.visual(image.type(self.dtype))
 
     def encode_text(self, text):
-        # text = text.squeeze(1)
+        text = text.squeeze(1)
         # x = self.token_embedding(text).type(self.dtype)  # [batch_size, n_ctx, d_model]
-        # x = self.token_embedding(text)  # [batch_size, n_ctx, d_model]
+        x = self.token_embedding(text)  # [batch_size, n_ctx, d_model]
         # print(x.shape, x, "*******************")
         # print(OIHOHI)
         
         # x = torch.squeeze(x)  # [batch_size, n_ctx, d_model]
         
         # x = x + self.positional_embedding.type(self.dtype)
-        print("----------------", self.positional_embedding, "*********************")
-        print(OIHOIU)
-        
         x = x + self.positional_embedding
         # print("------------", x.shape, "***************")
         # print(HIHO)
         
         x = x.permute(1, 0, 2)  # NLD -> LND
-
-        print("----------------_", self.transformer, "***************")
-        print(HOIEHOI)
-        
         x = self.transformer(x)
         x = x.permute(1, 0, 2)  # LND -> NLD
         # x = self.ln_final(x).type(self.dtype)
@@ -1090,30 +815,6 @@ class CLIP_encoder(nn.Module):
         x = x[torch.arange(x.shape[0]), text.argmax(dim=-1)] @ self.text_projection
         return x
 
-
-
-    def encode_text_tokens(self, tokenized_text):
-        """
-        Encode a list of text strings using the CLIP text encoder
-        
-        Args:
-            text_list: List of strings to encode
-        
-        Returns:
-            text_features: Tensor of encoded text features
-        """
-        # text = text.squeeze(1)
-        # text_tokens = tokenize(text_list).to(device="cuda")
-        # with torch.no_grad():
-        #     text_features = self.clip_model.encode_text(text_tokens)
-        # return text_features
-        text_feat = self.clip_text_enc(tokenized_text)
-        return text_feat
-
-
-
-
-        
     def forward(self, image, text):
         """ input: 
                 image: batch of images of shape [B, C, H, W]
@@ -1131,37 +832,12 @@ class CLIP_encoder(nn.Module):
         # print(ljoihoi)
             
         if self.training:
-            # with torch.no_grad():
             for i in text:
-                # text_token = tokenize(i).to(device="cuda")
-                
-                # text_features_ind = self.clip_text_enc(text_token)
-                # print("----------------", text_token.shape, "*********text token ***************")
-                # text_features_ind = self.encode_text_tokens(text_token)
-                text_features_ind = self.encode_text(i)
-                # text_features_ind = self.clip_text_enc(text_token)
-                # print("----------------", text_features_ind.shape, "*********text features ***************")
+                text_token = tokenize(i).to(device="cuda")
+                text_features_ind = self.encode_text(text_token)
                 text_batch.append(text_features_ind)
-                print("--------------", self.encode_text, "****************")
-                # print(HOIEHO)
-                
-                # text_features_ind = self.encode_text(text_token)
-                # text_batch.append(text_features_ind)
             # image_features = ResNet.forward(x=image)
-            # print("************", len(text_batch), text_batch[0].shape, "-----------------")
-            # print(OIOFEF)
-            
-            ############## RESNET WORKING ##################
             image_features = self.encode_image(image)
-
-            # image_features = self.visual(image)
-            # print("--------------------", image_features["res2"].shape, "&*******************")            
-            # print("--------------------", image_features["res3"].shape, "&*******************")            
-            # print("--------------------", image_features["res4"].shape, "&*******************")            
-            # print("--------------------", image_features["res5"].shape, "&*******************")
-            # print("************", len(text_batch), text_batch[0].shape, "-----------------")
-            # print(OHOIH)
-            
             # text = tokenize(text).to(device="cuda")
             # text_features = self.encode_text(text)
             # print("--------img-----------", image_features["res4"].shape, "*************")
@@ -1349,16 +1025,9 @@ def convert_weights(model: nn.Module):
 
     model.apply(_convert_weights_to_fp16)
 
-
 to_remove = [ "positional_embedding","text_projection", "logit_scale", "input_resolution", "context_length", "vocab_size", "transformer.resblocks.0.attn.in_proj_weight", "transformer.resblocks.0.attn.in_proj_bias", "transformer.resblocks.0.attn.out_proj.weight", "transformer.resblocks.0.attn.out_proj.bias", "transformer.resblocks.0.ln_1.weight", "transformer.resblocks.0.ln_1.bias", "transformer.resblocks.0.mlp.c_fc.weight", "transformer.resblocks.0.mlp.c_fc.bias", "transformer.resblocks.0.mlp.c_proj.weight", "transformer.resblocks.0.mlp.c_proj.bias", "transformer.resblocks.0.ln_2.weight", "transformer.resblocks.0.ln_2.bias", "transformer.resblocks.1.attn.in_proj_weight", "transformer.resblocks.1.attn.in_proj_bias", "transformer.resblocks.1.attn.out_proj.weight", "transformer.resblocks.1.attn.out_proj.bias", "transformer.resblocks.1.ln_1.weight", "transformer.resblocks.1.ln_1.bias", "transformer.resblocks.1.mlp.c_fc.weight", "transformer.resblocks.1.mlp.c_fc.bias", "transformer.resblocks.1.mlp.c_proj.weight", "transformer.resblocks.1.mlp.c_proj.bias", "transformer.resblocks.1.ln_2.weight", "transformer.resblocks.1.ln_2.bias", "transformer.resblocks.2.attn.in_proj_weight", "transformer.resblocks.2.attn.in_proj_bias", "transformer.resblocks.2.attn.out_proj.weight", "transformer.resblocks.2.attn.out_proj.bias", "transformer.resblocks.2.ln_1.weight", "transformer.resblocks.2.ln_1.bias", "transformer.resblocks.2.mlp.c_fc.weight", "transformer.resblocks.2.mlp.c_fc.bias", "transformer.resblocks.2.mlp.c_proj.weight", "transformer.resblocks.2.mlp.c_proj.bias", "transformer.resblocks.2.ln_2.weight", "transformer.resblocks.2.ln_2.bias", "transformer.resblocks.3.attn.in_proj_weight", "transformer.resblocks.3.attn.in_proj_bias", "transformer.resblocks.3.attn.out_proj.weight", "transformer.resblocks.3.attn.out_proj.bias", "transformer.resblocks.3.ln_1.weight", "transformer.resblocks.3.ln_1.bias", "transformer.resblocks.3.mlp.c_fc.weight", "transformer.resblocks.3.mlp.c_fc.bias", "transformer.resblocks.3.mlp.c_proj.weight", "transformer.resblocks.3.mlp.c_proj.bias", "transformer.resblocks.3.ln_2.weight", "transformer.resblocks.3.ln_2.bias", "transformer.resblocks.4.attn.in_proj_weight", "transformer.resblocks.4.attn.in_proj_bias", "transformer.resblocks.4.attn.out_proj.weight", "transformer.resblocks.4.attn.out_proj.bias", "transformer.resblocks.4.ln_1.weight", "transformer.resblocks.4.ln_1.bias", "transformer.resblocks.4.mlp.c_fc.weight", "transformer.resblocks.4.mlp.c_fc.bias", "transformer.resblocks.4.mlp.c_proj.weight", "transformer.resblocks.4.mlp.c_proj.bias", "transformer.resblocks.4.ln_2.weight", "transformer.resblocks.4.ln_2.bias", "transformer.resblocks.5.attn.in_proj_weight", "transformer.resblocks.5.attn.in_proj_bias", "transformer.resblocks.5.attn.out_proj.weight", "transformer.resblocks.5.attn.out_proj.bias", "transformer.resblocks.5.ln_1.weight", "transformer.resblocks.5.ln_1.bias", "transformer.resblocks.5.mlp.c_fc.weight", "transformer.resblocks.5.mlp.c_fc.bias", "transformer.resblocks.5.mlp.c_proj.weight", "transformer.resblocks.5.mlp.c_proj.bias", "transformer.resblocks.5.ln_2.weight", "transformer.resblocks.5.ln_2.bias", "transformer.resblocks.6.attn.in_proj_weight", "transformer.resblocks.6.attn.in_proj_bias", "transformer.resblocks.6.attn.out_proj.weight", "transformer.resblocks.6.attn.out_proj.bias", "transformer.resblocks.6.ln_1.weight", "transformer.resblocks.6.ln_1.bias", "transformer.resblocks.6.mlp.c_fc.weight", "transformer.resblocks.6.mlp.c_fc.bias", "transformer.resblocks.6.mlp.c_proj.weight", "transformer.resblocks.6.mlp.c_proj.bias", "transformer.resblocks.6.ln_2.weight", "transformer.resblocks.6.ln_2.bias", "transformer.resblocks.7.attn.in_proj_weight", "transformer.resblocks.7.attn.in_proj_bias", "transformer.resblocks.7.attn.out_proj.weight", "transformer.resblocks.7.attn.out_proj.bias", "transformer.resblocks.7.ln_1.weight", "transformer.resblocks.7.ln_1.bias", "transformer.resblocks.7.mlp.c_fc.weight", "transformer.resblocks.7.mlp.c_fc.bias", "transformer.resblocks.7.mlp.c_proj.weight", "transformer.resblocks.7.mlp.c_proj.bias", "transformer.resblocks.7.ln_2.weight", "transformer.resblocks.7.ln_2.bias", "transformer.resblocks.8.attn.in_proj_weight", "transformer.resblocks.8.attn.in_proj_bias", "transformer.resblocks.8.attn.out_proj.weight", "transformer.resblocks.8.attn.out_proj.bias", "transformer.resblocks.8.ln_1.weight", "transformer.resblocks.8.ln_1.bias", "transformer.resblocks.8.mlp.c_fc.weight", "transformer.resblocks.8.mlp.c_fc.bias", "transformer.resblocks.8.mlp.c_proj.weight", "transformer.resblocks.8.mlp.c_proj.bias", "transformer.resblocks.8.ln_2.weight", "transformer.resblocks.8.ln_2.bias", "transformer.resblocks.9.attn.in_proj_weight", "transformer.resblocks.9.attn.in_proj_bias", "transformer.resblocks.9.attn.out_proj.weight", "transformer.resblocks.9.attn.out_proj.bias", "transformer.resblocks.9.ln_1.weight", "transformer.resblocks.9.ln_1.bias", "transformer.resblocks.9.mlp.c_fc.weight", "transformer.resblocks.9.mlp.c_fc.bias", "transformer.resblocks.9.mlp.c_proj.weight", "transformer.resblocks.9.mlp.c_proj.bias", "transformer.resblocks.9.ln_2.weight", "transformer.resblocks.9.ln_2.bias", "transformer.resblocks.10.attn.in_proj_weight", "transformer.resblocks.10.attn.in_proj_bias", "transformer.resblocks.10.attn.out_proj.weight", "transformer.resblocks.10.attn.out_proj.bias", "transformer.resblocks.10.ln_1.weight", "transformer.resblocks.10.ln_1.bias", "transformer.resblocks.10.mlp.c_fc.weight", "transformer.resblocks.10.mlp.c_fc.bias", "transformer.resblocks.10.mlp.c_proj.weight", "transformer.resblocks.10.mlp.c_proj.bias", "transformer.resblocks.10.ln_2.weight", "transformer.resblocks.10.ln_2.bias", "transformer.resblocks.11.attn.in_proj_weight", "transformer.resblocks.11.attn.in_proj_bias", "transformer.resblocks.11.attn.out_proj.weight", "transformer.resblocks.11.attn.out_proj.bias", "transformer.resblocks.11.ln_1.weight", "transformer.resblocks.11.ln_1.bias", "transformer.resblocks.11.mlp.c_fc.weight", "transformer.resblocks.11.mlp.c_fc.bias", "transformer.resblocks.11.mlp.c_proj.weight", "transformer.resblocks.11.mlp.c_proj.bias", "transformer.resblocks.11.ln_2.weight", "transformer.resblocks.11.ln_2.bias", "token_embedding.weight", "ln_final.weight", "ln_final.bias"]
 #
-
-
 def build_model(state_dict: dict):
-
-    state_dict = torch.load("./clip_RN50.pth")
-    print(state_dict.keys(), "______---------------------_________-----")
-    print(OHOIH)
     
     embed_dim = state_dict["text_projection"].shape[1]
     for k in to_remove:

@@ -888,6 +888,7 @@ class MaskFormer(nn.Module):
                 #     p.requires_grad = True
                 # print("_----------------", self.backbone.visual.patchprompter.patch, "99(*****************")
                 # print(OIHIOUOIEF)
+                import ipdb; ipdb.set_trace()
                 self.backbone.visual.patchprompter.patch.requires_grad = True
                 # self.backbone.visual.han1.alpha1.requires_grad = True
                 # self.backbone.visual.han1.beta1.requires_grad = True
