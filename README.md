@@ -23,11 +23,14 @@ Our implementation is based on [ECLIPSE](https://github.com/clovaai/ECLIPSE) and
 Please check the [installation instructions](https://github.com/facebookresearch/Mask2Former/blob/main/INSTALL.md) and [dataset preparation](https://github.com/facebookresearch/Mask2Former/blob/main/datasets/README.md).
 
 
-## Docker image is available with environments and everything configured:
+## Docker image:
 ```
+Full setup is configured in the below :
+
+
 docker pull manjumich/vista-clip-iisc:version1
 
-The working code is placed under /home
+The working code is placed under "/home/vista-clip"
 Conda environment to activate is "ept" using command: conda activate ept
 ```
 
